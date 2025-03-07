@@ -28,14 +28,55 @@
         .chapter-list a:hover { background: #f4f4f4; }
         .quiz-section { position: fixed; bottom: 20px; left: 20px; background: #2869ff; color: white; padding: 15px 20px; border: none; border-radius: 50px; font-size: 1rem; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
         .quiz-section:hover { background: #1a53cc; }
+        .quiz-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50%;
+            height: 60%;
+            background: white;
+            box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 1000;
+            overflow-y: auto; /* Enables Scroll */
+        }
+        .quiz-modal h2 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+        .quiz-modal .quiz-content {
+            max-height: 70%;
+            overflow-y: auto; /* Ensures scrolling for long content */
+            padding: 10px;
+            text-align: left;
+        }
+        .quiz-modal .close-btn {
+            display: block;
+            margin: 10px auto;
+            padding: 10px 20px;
+            background: #2869ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .quiz-modal .close-btn:hover {
+            background: #1a53cc;
+        }
+
+
     </style>
 </head>
 <body>
     <div class="header">EduLearn</div>
-    <button class="chatbot-btn" onclick="toggleChatbot()">🤖EduPoggy </button>
+    <button class="chatbot-btn" onclick="toggleChatbot()">🤖EduBot </button>
     <button class="quiz-section" onclick="generateQuiz()">📝 Take Quiz</button>
     <div class="chatbot-container" id="chatbot">
-        <div class="chatbot-header">🤖EduPoggy here</div>
+        <div class="chatbot-header">🤖EduBot here</div>
         <div class="chatbot-messages" id="chat-messages"></div>
         <div class="chatbot-input">
             <input type="text" id="chat-input" placeholder="Ask a question...">
@@ -43,7 +84,7 @@
         </div>
     </div>
     <div class="hero">
-        <h1>Learn science and maths with EduPoggy</h1>
+        <h1>Learn science and maths with EduBot</h1>
         <p>Interactive quizzes, notes, and AI chatbot for doubt-solving</p>
     </div>
     <div class="subjects">
@@ -90,6 +131,17 @@
             </div>
         </div>
     </div>
+    <!-- Quiz Modal -->
+    <div class="quiz-modal" id="quizModal">
+        <h2>Quiz Questions</h2>
+        <div class="quiz-content" id="quizContent"></div>
+        <button class="close-btn" onclick="closeQuiz()">Close</button>
+    </div>
+
+
+
+
+    
     <script>
         function toggleChapters(subject) {
             const chapters = document.getElementById(subject);
@@ -102,7 +154,7 @@
         }
 
 
-
+/*
 function sendMessage() {
     const input = document.getElementById('chat-input');
     const messages = document.getElementById('chat-messages');
@@ -133,6 +185,74 @@ function sendMessage() {
 
     input.value = '';
 }
+
+*/
+
+
+
+function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const messages = document.getElementById('chat-messages');
+    if (input.value.trim() === '') return;
+
+    // Display user message
+    const userMessage = document.createElement('div');
+    userMessage.innerHTML = `<strong>User:</strong> ${input.value}`;
+    messages.appendChild(userMessage);
+
+    const apiKey = "AIzaSyBqZMKf1tdF0LxJv_VRraMS1us4JQKvOC0"; // Replace with your actual API key
+
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: input.value }] }] })
+    })
+    .then(response => response.json())
+    .then(data => {
+        let aiResponse = data.candidates[0]?.content?.parts[0]?.text || "Sorry, I couldn't understand that.";
+        aiResponse = aiResponse.replace(/\*/g, ''); // Remove unwanted symbols
+
+        // Split AI response into paragraphs at line breaks
+        const paragraphs = aiResponse.split(/\n\s*\n/); // Splitting at double line breaks
+        const aiMessage = document.createElement('div');
+        aiMessage.innerHTML = `<strong>AI:</strong>`; // Title
+
+        paragraphs.forEach(para => {
+            const pTag = document.createElement('p');
+            pTag.textContent = para.trim();
+            aiMessage.appendChild(pTag);
+        });
+
+        messages.appendChild(aiMessage);
+    })
+    .catch(error => {
+        const errorMessage = document.createElement('div');
+        errorMessage.innerHTML = `<strong>AI:</strong> <p>Error fetching response. Please try again.</p>`;
+        messages.appendChild(errorMessage);
+        console.error("Error:", error);
+    });
+
+    input.value = ''; // Clear input field
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
 function generateQuiz() {
             const apiKey = "AIzaSyBqZMKf1tdF0LxJv_VRraMS1us4JQKvOC0";
@@ -153,7 +273,7 @@ function generateQuiz() {
         }
 */
 
-
+/*
 function generateQuiz() {
     const apiKey = "AIzaSyBqZMKf1tdF0LxJv_VRraMS1us4JQKvOC0";
     
@@ -184,12 +304,42 @@ function generateQuiz() {
         console.error("Error:", error);
     });
 }
+*/
+function generateQuiz() {
+            const apiKey = "AIzaSyBqZMKf1tdF0LxJv_VRraMS1us4JQKvOC0"; // Replace with your API key
+            const chapter = prompt("Enter the chapter name for the quiz:");
 
+            if (!chapter) {
+                alert("You must enter a chapter name to generate a quiz.");
+                return;
+            }
 
+            // Fetch 5 questions from Gemini API
+            fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    contents: [{ parts: [{ text: `Generate 5 multiple-choice questions from the chapter: ${chapter}.` }] }] 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const quizData = data.candidates?.[0]?.content?.parts?.[0]?.text || "Error generating quiz.";
+                
+                // Display in Modal
+                document.getElementById("quizContent").innerHTML = quizData.replace(/\n/g, "<br><br>");
+                document.getElementById("quizModal").style.display = "block";
+            })
+            .catch(error => {
+                alert("Error fetching quiz questions.");
+                console.error("Error:", error);
+            });
+        }
 
-
-
-
+        // Close Quiz Modal
+        function closeQuiz() {
+            document.getElementById("quizModal").style.display = "none";
+        }
 
 
 
